@@ -1,0 +1,34 @@
+[alias]
+	lp = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative
+	co = checkout
+	st = status
+[color]
+	ui = true
+	status = always
+[pull]
+	rebase = true
+[user]
+	name = AJ Moore
+	email = alex.moore@workday.com
+[core]
+	excludesfile = /Users/alex.moore/.gitignore_global
+	editor = nvim
+[gpg]
+	program = gpg
+[commit]
+	gpgSign = false
+[tag]
+	forceSignAnnotated = false
+[merge]
+	tool = smerge
+[diff]
+	tool = default-difftool
+[difftool "default-difftool"]
+	cmd = code --wait --diff $LOCAL $REMOTE
+[mergetool "smerge"]
+	cmd = smerge mergetool \"$BASE\" \"$LOCAL\" \"$REMOTE\" -o \"$MERGED\"
+	trustExitCode = true
+[branch]
+	autosetuprebase = always
+[init]
+	defaultBranch = main

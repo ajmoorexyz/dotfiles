@@ -1,0 +1,112 @@
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# Initialize rad-shell and plugins
+source $HOME/.rad-shell/rad-init.zsh
+
+
+###############
+#   ENV_VAR
+###############
+
+# rad-shell
+export PROJECTS_DIR="$HOME/code"
+export GHE_USERNAME="alex-moore"
+export DOTFILES_DIR="$HOME/.config/dotfiles"
+
+# Editor configuration
+export VISUAL="code -n"
+export EDITOR="vim"
+
+eval "$(pyenv init -)"
+
+source <(eksctl completion zsh)
+source <(kubectl completion zsh)
+source <(kind completion zsh)
+source <(tkn completion zsh)
+
+# Node Version Manager
+export NVM_DIR="$HOME/.nvm"
+[ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
+[ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+
+edit.zshrc() {
+  c ~/.zshrc
+}
+
+##################
+#   aliases
+##################
+
+alias dsl="cd $PROJECTS_DIR/jenkins_dsl_jobs"
+alias j-docker="cd $PROJECTS_DIR/jenkins-docker"
+alias j-cloud="cd $PROJECTS_DIR/jenkins-cloud"
+alias j-lib="cd $PROJECTS_DIR/jenkins-libraries"
+alias j-drone="cd $PROJECTS_DIR/jenkins-drone-image"
+alias ansible-playbook='docker run --rm -ti -e ANSIBLE_LIBRARY=$(pwd)/ansible/plugins/modules -v $(pwd):/ansible -v "${HOME}/.aws:/root/.aws" -w="/ansible" docker-dev-artifactory.workday.com/pt/opseng/ansible:latest ansible-playbook'
+
+# jcd = jc-cli dev mode
+jcd() {
+  jc-cli --dev $HOME/code/jc-cli-py "$@"
+}
+
+# decodes aws sts messages
+decode-sts() {
+  aws sts decode-authorization-message --encoded-message $1 --output text | jq .
+}
+
+# ssh all the things
+ssh-setup() {
+  ssh-add
+  # ssh key for 'prod' EC2 resources
+  ssh-add "$HOME/code/jenkins-cloud/secrets/id_rsa-pt-ci-jenkins-aws"
+  # ssh key for 'dev' EC2 resources
+  ssh-add "$HOME/.jenkins-control/id_rsa"
+}
+
+git-rebase() {
+  branch=${1:=master}
+  git checkout $branch
+	git fetch upstream --prune
+	git rebase upstream/${branch}
+	git push origin $branch
+}
+
+pt-ssh() {
+  ssh -i ~/.jenkins-control/id_rsa centos@"${1}"
+}
+
+terraform() {
+  docker run -ti --rm \
+    -v "${HOME}/.aws/credentials:/root/.aws/credentials" \
+    -v /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock \
+    -e "SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock" \
+    -v "$(pwd):/workspace" \
+    -e TF_LOG \
+    -w "/workspace${TF_PLAN_PATH}" \
+    docker-dev-artifactory.workday.com/pt/common/terraform:1.1.2 "${@}"
+}
+
+# packer() {
+#   docker run -ti --rm \
+#     -v "${HOME}/.aws/credentials:/root/.aws/credentials" \
+#     -v /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock \
+#     -e "SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock" \
+#     -v "$(pwd):/workspace" \
+#     -w "/workspace${TF_PLAN_PATH}" \
+#     docker-dev-artifactory.workday.com/pt/ci/packer "${@}"
+# }
+
+
+#############
+#   PATH
+#############
+
+export PATH=$PATH:/Users/alex.moore/Library/Python/3.9/bin
+
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh

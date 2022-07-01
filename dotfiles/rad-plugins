@@ -1,0 +1,27 @@
+# Enhanced fork of zaw
+brandon-fryslie/zaw
+zsh-users/zsh-autosuggestions / develop
+zsh-users/zsh-completions
+
+# OG rad plugins
+brandon-fryslie/rad-plugins docker
+brandon-fryslie/rad-plugins iterm
+brandon-fryslie/rad-plugins rad-dev
+brandon-fryslie/rad-plugins sdkman
+brandon-fryslie/rad-plugins shell-tools
+brandon-fryslie/rad-plugins zaw
+
+# oh-my-zsh addons
+ohmyzsh/ohmyzsh plugins/docker
+ohmyzsh/ohmyzsh plugins/docker-compose
+
+# Personal customization
+truckfondue/rad-plugins aliases
+git@ghe.megaleo.com:brandon-fryslie/rad-workday-plugin.git
+
+# Theme
+romkatv/powerlevel10k powerlevel10k
+
+# Load these last
+brandon-fryslie/zsh-syntax-highlighting
+brandon-fryslie/rad-plugins shell-customize
