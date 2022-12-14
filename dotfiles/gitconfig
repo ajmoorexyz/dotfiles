@@ -9,10 +9,9 @@
 	rebase = true
 [user]
 	name = AJ Moore
-	email = alex.moore@workday.com
 [core]
-	excludesfile = /Users/alex.moore/.gitignore_global
-	editor = nvim
+	excludesfile = $HOME/.gitignore_global
+	editor = vim
 [gpg]
 	program = gpg
 [commit]
