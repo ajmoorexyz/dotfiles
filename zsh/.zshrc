@@ -1,6 +1,24 @@
 # ~/.zshrc - interactive shells.
 # Managed in $DOTFILES (~/code/dotfiles). Edit there, not here.
 
+# HOMEBREW_PREFIX normally comes from `brew shellenv` in .zprofile, but that
+# only runs for login shells. A bare `zsh` (subshell, tmux pane, some editors)
+# would otherwise skip every brew-installed plugin below, silently.
+if [[ -z "${HOMEBREW_PREFIX:-}" ]]; then
+  for _p in /opt/homebrew /usr/local; do
+    [[ -x "$_p/bin/brew" ]] && export HOMEBREW_PREFIX="$_p" && break
+  done
+  unset _p
+fi
+
+# Same reasoning for PATH: .zprofile adds these, but only on login. Without
+# them a bare `zsh` finds neither starship nor atuin and silently falls back to
+# a default prompt with no history search. `typeset -U` keeps path deduped, so
+# this is a no-op when .zprofile already ran.
+typeset -U path
+[[ -d "$HOMEBREW_PREFIX/bin"  ]] && path=("$HOMEBREW_PREFIX/bin" "$HOMEBREW_PREFIX/sbin" $path)
+[[ -d "$HOME/.local/bin"      ]] && path=("$HOME/.local/bin" $path)
+
 ZSH_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
 ZSH_COMPLETIONS="$ZSH_CACHE/completions"
 mkdir -p "$ZSH_COMPLETIONS"
