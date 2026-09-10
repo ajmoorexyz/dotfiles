@@ -1,0 +1,32 @@
+# Atuin - shell history. Owns ctrl+r.
+# https://docs.atuin.sh/configuration/config/
+
+## Sync is off. To enable later:  atuin register  &&  atuin sync
+auto_sync = false
+update_check = false
+
+## Search
+search_mode = "fuzzy"
+filter_mode = "global"          # ctrl+r searches everything by default...
+# ...and alt+<n> / ctrl+r again cycles: global -> host -> session -> directory
+
+## UI
+style = "compact"
+inline_height = 20
+show_preview = true
+show_help = true
+
+## Enter puts the command on the prompt line instead of running it outright.
+## Safer: you get to read and edit before anything executes.
+enter_accept = false
+
+## Never record these.
+history_filter = [
+  "^\\s",                        # anything typed with a leading space
+  "(?i)(password|passwd|secret|token|api[_-]?key)=",
+  "^aws configure set .*secret",
+  "^export .*(TOKEN|SECRET|KEY|PASSWORD)",
+]
+
+## Don't clutter history with trivia.
+cwd_filter = []

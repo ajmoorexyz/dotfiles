@@ -1,0 +1,9 @@
+# ripgrep defaults. Loaded via $RIPGREP_CONFIG_PATH (set in .zshenv).
+
+# Emit OSC 8 hyperlinks so search hits are cmd+clickable in Ghostty and open
+# at the exact line in VS Code.
+--hyperlink-format=vscode
+
+--smart-case
+--max-columns=200
+--max-columns-preview

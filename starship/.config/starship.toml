@@ -1,0 +1,146 @@
+# Starship prompt - Dracula palette, powerline ribbon.
+#
+# Design note: only `directory` and the closing cap are guaranteed to render,
+# so those are the only two places the background colour changes. Every
+# conditional module (git, languages, cloud, k8s) sits on one shared surface
+# colour. That is what keeps absent modules from leaving empty coloured blocks
+# in the ribbon - the usual failure mode of powerline configs.
+
+"$schema" = 'https://starship.rs/config-schema.json'
+
+format = """
+[](fg:purple)\
+$directory\
+[](fg:purple bg:surface)\
+$git_branch\
+$git_status\
+$nodejs\
+$python\
+$golang\
+$rust\
+$ruby\
+$aws\
+$kubernetes\
+$cmd_duration\
+[](fg:surface)\
+$line_break\
+$character"""
+
+add_newline = true
+command_timeout = 1000
+
+[palettes.dracula]
+bg      = "#282a36"
+surface = "#44475a"
+fg      = "#f8f8f2"
+comment = "#6272a4"
+cyan    = "#8be9fd"
+green   = "#50fa7b"
+orange  = "#ffb86c"
+pink    = "#ff79c6"
+purple  = "#bd93f9"
+red     = "#ff5555"
+yellow  = "#f1fa8c"
+
+palette = "dracula"
+
+# ------------------------------------------------------------------ prompt ---
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol   = "[❯](bold red)"
+vimcmd_symbol  = "[❮](bold purple)"
+
+[directory]
+style = "fg:bg bg:purple bold"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncate_to_repo = true
+truncation_symbol = "…/"
+read_only = " "
+read_only_style = "fg:red bg:purple"
+
+[directory.substitutions]
+"~/code" = " code"
+"Documents" = " "
+"Downloads" = " "
+
+# --------------------------------------------------------------------- git ---
+[git_branch]
+symbol = " "
+style = "fg:pink bg:surface"
+format = "[ $symbol$branch ]($style)"
+
+[git_status]
+style = "fg:red bg:surface"
+format = "[$all_status$ahead_behind]($style)"
+conflicted = "= "
+ahead      = "⇡${count} "
+behind     = "⇣${count} "
+diverged   = "⇕⇡${ahead_count}⇣${behind_count} "
+untracked  = "?${count} "
+stashed    = " ${count} "
+modified   = "!${count} "
+staged     = "+${count} "
+renamed    = "»${count} "
+deleted    = "✘${count} "
+
+# --------------------------------------------------------------- languages ---
+# Each only renders when the project actually uses it.
+[nodejs]
+symbol = " "
+style = "fg:green bg:surface"
+format = "[ $symbol($version) ]($style)"
+
+[python]
+symbol = " "
+style = "fg:yellow bg:surface"
+format = '[ $symbol($version)(\($virtualenv\)) ]($style)'
+
+[golang]
+symbol = " "
+style = "fg:cyan bg:surface"
+format = "[ $symbol($version) ]($style)"
+
+[rust]
+symbol = " "
+style = "fg:orange bg:surface"
+format = "[ $symbol($version) ]($style)"
+
+[ruby]
+symbol = " "
+style = "fg:red bg:surface"
+format = "[ $symbol($version) ]($style)"
+
+# ------------------------------------------------------------ cloud / k8s ---
+[aws]
+symbol = " "
+style = "fg:orange bg:surface"
+format = '[ $symbol$profile(\($region\)) ]($style)'
+
+[kubernetes]
+disabled = false
+symbol = "☸ "
+style = "fg:cyan bg:surface"
+format = '[ $symbol$context(\($namespace\)) ]($style)'
+
+# ------------------------------------------------------------------ timing ---
+[cmd_duration]
+min_time = 2000
+style = "fg:yellow bg:surface"
+format = "[  $duration ]($style)"
+
+# ----------------------------------------------------------------- disabled ---
+# Noise on a personal laptop.
+[battery]
+disabled = true
+
+[time]
+disabled = true
+
+[hostname]
+ssh_only = true
+style = "fg:comment"
+format = "[$hostname]($style) "
+
+[username]
+show_always = false
