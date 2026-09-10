@@ -29,10 +29,14 @@ $character"""
 add_newline = true
 command_timeout = 1000
 
+# Must stay above the [palettes.*] table: any key after a table header belongs
+# to that table, so putting this below would silently disable the palette.
+palette = "dracula"
+
 [palettes.dracula]
-bg      = "#282a36"
+base    = "#282a36"
 surface = "#44475a"
-fg      = "#f8f8f2"
+text    = "#f8f8f2"
 comment = "#6272a4"
 cyan    = "#8be9fd"
 green   = "#50fa7b"
@@ -42,8 +46,6 @@ purple  = "#bd93f9"
 red     = "#ff5555"
 yellow  = "#f1fa8c"
 
-palette = "dracula"
-
 # ------------------------------------------------------------------ prompt ---
 [character]
 success_symbol = "[❯](bold green)"
@@ -51,7 +53,7 @@ error_symbol   = "[❯](bold red)"
 vimcmd_symbol  = "[❮](bold purple)"
 
 [directory]
-style = "fg:bg bg:purple bold"
+style = "fg:base bg:purple bold"
 format = "[ $path ]($style)"
 truncation_length = 3
 truncate_to_repo = true
@@ -115,13 +117,23 @@ format = "[ $symbol($version) ]($style)"
 [aws]
 symbol = " "
 style = "fg:orange bg:surface"
-format = '[ $symbol$profile(\($region\)) ]($style)'
+# Reads correctly whether or not a profile is set. The parenthesised-region
+# form renders a bare "(us-west-2)" when only a default region is configured,
+# which looks like a mistake. The aws module has no detect_* options, so this
+# segment always shows when ~/.aws/config exists - set `disabled = true` if
+# that is unwanted.
+format = '[ $symbol($profile )($region) ]($style)'
 
 [kubernetes]
 disabled = false
 symbol = "☸ "
 style = "fg:cyan bg:surface"
 format = '[ $symbol$context(\($namespace\)) ]($style)'
+# A kube context is essentially always set, so without these the segment shows
+# in every directory. Limit it to places where it actually means something.
+detect_files = ["Chart.yaml", "skaffold.yaml", "kustomization.yaml", "Tiltfile"]
+detect_folders = ["k8s", "kubernetes", "charts", "helm", "manifests"]
+detect_env_vars = ["KUBECONFIG"]
 
 # ------------------------------------------------------------------ timing ---
 [cmd_duration]
