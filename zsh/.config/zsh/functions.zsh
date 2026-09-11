@@ -2,7 +2,7 @@
 
 ### md - make a directory and cd into it
 md() {
-  mkdir -p -- "$1" && cd -P -- "$1"
+  mkdir -p -- "$1" && builtin cd -P -- "$1"
 }
 
 ### git-rebase - sync origin/<branch> with upstream/<branch>
