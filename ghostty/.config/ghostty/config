@@ -4,6 +4,11 @@
 # ------------------------------------------------------------- appearance ---
 theme = Dracula+
 
+# Lifted off Dracula's stock #282a36. Herdr paints its chrome (tab bar,
+# status line) with catppuccin's #181825; a lighter pane background pushes
+# the terminal away from that so herdr's panels read as a distinct plane.
+background = #303343
+
 font-family = MesloLGS Nerd Font Mono
 font-size = 14
 font-thicken = true
