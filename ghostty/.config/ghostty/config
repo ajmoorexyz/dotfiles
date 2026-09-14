@@ -19,7 +19,11 @@ theme = iterm
 # file now supplies the background.
 
 font-family = MesloLGS Nerd Font Mono
-font-size = 14
+# Owned here, not in Application Support. That file used to set 12 and win
+# over this one; its font-size line has been removed so this is the only
+# source. Ghostty's settings UI will write it back there if you change the
+# size in the app, which would silently override this again.
+font-size = 12
 font-thicken = true
 
 cursor-style = block
