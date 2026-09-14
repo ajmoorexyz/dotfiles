@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+# Regenerate the Ghostty theme from iTerm2's LIVE colours.
+#
+# Why live, and not ~/Library/Preferences/com.googlecode.iterm2.plist: iTerm
+# keeps preferences in memory and only flushes them on quit, so the plist is
+# routinely stale - it can be missing whole profiles and can disagree with
+# what is on screen. It also stores "(Light)"/"(Dark)" variants that may
+# differ from the plain keys. AppleScript reports what the running terminal is
+# actually rendering, which is the only thing that can be matched exactly.
+#
+# Usage: scripts/sync-iterm-theme.sh [session]
+#   Reads the current session of iTerm's current window. Point iTerm at the
+#   profile you want mirrored before running.
+set -euo pipefail
+
+DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUT="$DOTFILES/ghostty/.config/ghostty/themes/iterm"
+
+command -v osascript >/dev/null || { echo "osascript not found"; exit 1; }
+pgrep -qx iTerm2 || osascript -e 'tell application "System Events" to (name of processes) contains "iTerm2"' \
+  | grep -q true || { echo "iTerm2 is not running - start it and try again"; exit 1; }
+
+read_colors() {
+  osascript <<'APPLESCRIPT'
+tell application "iTerm2"
+	tell current session of current window
+		-- Short names like `st` collide with AppleScript tokens and fail to
+		-- parse ("Expected expression but found st"); keep them verbose.
+		set out to ""
+		set vBg to background color
+		set out to out & "background " & (item 1 of vBg) & " " & (item 2 of vBg) & " " & (item 3 of vBg) & linefeed
+		set vFg to foreground color
+		set out to out & "foreground " & (item 1 of vFg) & " " & (item 2 of vFg) & " " & (item 3 of vFg) & linefeed
+		set vCursor to cursor color
+		set out to out & "cursor " & (item 1 of vCursor) & " " & (item 2 of vCursor) & " " & (item 3 of vCursor) & linefeed
+		set vCursorText to cursor text color
+		set out to out & "cursortext " & (item 1 of vCursorText) & " " & (item 2 of vCursorText) & " " & (item 3 of vCursorText) & linefeed
+		set vSelBg to selection color
+		set out to out & "selbg " & (item 1 of vSelBg) & " " & (item 2 of vSelBg) & " " & (item 3 of vSelBg) & linefeed
+		set vSelFg to selected text color
+		set out to out & "selfg " & (item 1 of vSelFg) & " " & (item 2 of vSelFg) & " " & (item 3 of vSelFg) & linefeed
+
+		set c0 to ANSI black color
+		set out to out & "p0 " & (item 1 of c0) & " " & (item 2 of c0) & " " & (item 3 of c0) & linefeed
+		set c1 to ANSI red color
+		set out to out & "p1 " & (item 1 of c1) & " " & (item 2 of c1) & " " & (item 3 of c1) & linefeed
+		set c2 to ANSI green color
+		set out to out & "p2 " & (item 1 of c2) & " " & (item 2 of c2) & " " & (item 3 of c2) & linefeed
+		set c3 to ANSI yellow color
+		set out to out & "p3 " & (item 1 of c3) & " " & (item 2 of c3) & " " & (item 3 of c3) & linefeed
+		set c4 to ANSI blue color
+		set out to out & "p4 " & (item 1 of c4) & " " & (item 2 of c4) & " " & (item 3 of c4) & linefeed
+		set c5 to ANSI magenta color
+		set out to out & "p5 " & (item 1 of c5) & " " & (item 2 of c5) & " " & (item 3 of c5) & linefeed
+		set c6 to ANSI cyan color
+		set out to out & "p6 " & (item 1 of c6) & " " & (item 2 of c6) & " " & (item 3 of c6) & linefeed
+		set c7 to ANSI white color
+		set out to out & "p7 " & (item 1 of c7) & " " & (item 2 of c7) & " " & (item 3 of c7) & linefeed
+		set c8 to ANSI bright black color
+		set out to out & "p8 " & (item 1 of c8) & " " & (item 2 of c8) & " " & (item 3 of c8) & linefeed
+		set c9 to ANSI bright red color
+		set out to out & "p9 " & (item 1 of c9) & " " & (item 2 of c9) & " " & (item 3 of c9) & linefeed
+		set c10 to ANSI bright green color
+		set out to out & "p10 " & (item 1 of c10) & " " & (item 2 of c10) & " " & (item 3 of c10) & linefeed
+		set c11 to ANSI bright yellow color
+		set out to out & "p11 " & (item 1 of c11) & " " & (item 2 of c11) & " " & (item 3 of c11) & linefeed
+		set c12 to ANSI bright blue color
+		set out to out & "p12 " & (item 1 of c12) & " " & (item 2 of c12) & " " & (item 3 of c12) & linefeed
+		set c13 to ANSI bright magenta color
+		set out to out & "p13 " & (item 1 of c13) & " " & (item 2 of c13) & " " & (item 3 of c13) & linefeed
+		set c14 to ANSI bright cyan color
+		set out to out & "p14 " & (item 1 of c14) & " " & (item 2 of c14) & " " & (item 3 of c14) & linefeed
+		set c15 to ANSI bright white color
+		set out to out & "p15 " & (item 1 of c15) & " " & (item 2 of c15) & " " & (item 3 of c15) & linefeed
+		return out
+	end tell
+end tell
+APPLESCRIPT
+}
+
+mkdir -p "$(dirname "$OUT")"
+
+read_colors | python3 -c '
+import sys
+
+# AppleScript reports 16-bit channels; Ghostty wants 8-bit hex. Round rather
+# than truncate: 65535 -> 255 exactly, and mid values land on the nearest byte.
+vals = {}
+for line in sys.stdin:
+    parts = line.split()
+    if len(parts) != 4:
+        continue
+    key, r, g, b = parts[0], *map(int, parts[1:])
+    vals[key] = "#%02x%02x%02x" % tuple(round(c * 255 / 65535) for c in (r, g, b))
+
+out = [
+    "# Ghostty theme mirroring iTerm2, generated by scripts/sync-iterm-theme.sh.",
+    "# Do not edit by hand - change it in iTerm and re-run the script.",
+    "",
+]
+for i in range(16):
+    out.append("palette = %d=%s" % (i, vals["p%d" % i]))
+out += [
+    "",
+    "background = "           + vals["background"],
+    "foreground = "           + vals["foreground"],
+    "cursor-color = "         + vals["cursor"],
+    "cursor-text = "          + vals["cursortext"],
+    "selection-background = " + vals["selbg"],
+    "selection-foreground = " + vals["selfg"],
+]
+sys.stdout.write("\n".join(out) + "\n")
+' > "$OUT"
+
+echo "wrote $OUT"
+echo
+cat "$OUT"
+echo
+echo "Reload Ghostty with cmd+shift+, to apply."

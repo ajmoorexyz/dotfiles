@@ -154,10 +154,44 @@ an obvious win. Not done.
 
 ## Notes
 
-- **Ghostty uses `Dracula`, not `Dracula+`.** They are different palettes
-  despite the name — `Dracula+` is the VS Code variant and changes blue,
-  magenta, yellow, bright black and the background. Picking it made every
-  listing and prompt segment a different colour than iTerm on stock Dracula.
+- **Ghostty's colours are generated from iTerm, not picked from a theme list.**
+  `theme = iterm` reads `ghostty/.config/ghostty/themes/iterm`, which
+  `scripts/sync-iterm-theme.sh` writes from iTerm's *live* colours. Re-run it
+  after changing anything in iTerm's colour settings.
+
+  No shipped theme matches, so don't try to substitute one. iTerm here is a
+  modified Dracula: palette 0 is `#000000` (stock `#21222c`), 7 is `#bbbbbb`
+  (`#f8f8f2`), 8 is `#555555` (`#6272a4`), the background is `#1e1f29`
+  (`#282a36`), and brights 9–14 are identical to the normal colours rather
+  than lightened. `Dracula` and `Dracula+` are both visibly wrong — and those
+  two are not the same palette as each other either.
+
+  The script reads AppleScript, **not** `com.googlecode.iterm2.plist`. iTerm
+  holds preferences in memory and flushes on quit, so the plist is routinely
+  stale — ours was missing an entire profile and its `Background Color`
+  disagreed with both the `(Light)` and `(Dark)` variants stored beside it.
+  Only the running app knows what is actually on screen.
+
+- **Ghostty reads a second config, and it wins.** On macOS it loads
+  `~/.config/ghostty/config` *and*
+  `~/Library/Application Support/com.mitchellh.ghostty/config.ghostty`, plus
+  `auto/theme.ghostty` in that same directory — which Ghostty's own settings
+  UI writes whenever you pick a theme in the app. Application Support loads
+  last, so it silently overrides this repo. That is not a merge failure you
+  will notice: the repo's `font-family` and padding applied normally while
+  `theme` was quietly replaced with `iTerm2 Solarized Light`.
+
+  Check with `ghostty +show-config | grep -E '^(theme|background)'`, which
+  prints the *resolved* value rather than what any one file says. Those two
+  files have had their `theme` lines removed on this machine, but changing the
+  theme in Ghostty's UI will write `auto/theme.ghostty` again and re-break it.
+
+  To verify what is actually rendered rather than what is configured, ask the
+  terminal itself — it answers OSC colour queries:
+
+  ```sh
+  printf '\033]11;?\033\\'   # background; replies rgb:1e1e/1f1f/2929
+  ```
 - **`compinit` refuses to run if anything in `fpath` is group-writable**, and
   `/opt/homebrew/share` ships that way (`drwxrwxr-x`). When it bails, `compdef`
   is never defined and every prompt prints

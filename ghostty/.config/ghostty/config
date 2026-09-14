@@ -2,18 +2,21 @@
 # Managed in ~/code/dotfiles. Reload in place with cmd+shift+,
 
 # ------------------------------------------------------------- appearance ---
-# "Dracula", not "Dracula+". They are different palettes despite the name:
-# Dracula+ is the VS Code variant and changes blue (#bd93f9 -> #82aaff),
-# magenta (#ff79c6 -> #c792ea), yellow (#f1fa8c -> #ffcb6b), bright black
-# (#6272a4 -> #545454) and the background (#282a36 -> #212121). That made
-# every directory listing and prompt segment render a different colour here
-# than in iTerm, which uses stock Dracula.
-theme = Dracula
+# Mirrors iTerm exactly. themes/iterm is generated from iTerm's LIVE colours
+# by scripts/sync-iterm-theme.sh - re-run that after changing anything in
+# iTerm's colour settings.
+#
+# Deliberately not a named theme. iTerm here is a *modified* Dracula, and no
+# shipped theme matches it: palette 0 is #000000 (stock Dracula #21222c),
+# 7 is #bbbbbb (#f8f8f2), 8 is #555555 (#6272a4), the background is #1e1f29
+# (#282a36), and brights 9-14 are identical to the normal colours rather than
+# lightened. "Dracula" and "Dracula+" are both visibly wrong here.
+theme = iterm
 
 # No `background` override. It used to be #303343 - lifted off Dracula's
 # stock #282a36 so herdr's catppuccin chrome (#181825) read as a distinct
-# plane. That cost an exact colour match with iTerm, which matters more.
-# Restore the override if herdr's panels stop reading as separate.
+# plane. That cost an exact match with iTerm, which matters more. The theme
+# file now supplies the background.
 
 font-family = MesloLGS Nerd Font Mono
 font-size = 14
