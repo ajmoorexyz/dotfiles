@@ -88,14 +88,42 @@ would be silently overridden by whatever follows it.
 
 Check it resolved the way you think with `git config --show-origin --get user.email`.
 
-**This repo is itself an exception.** The machine default is the work address,
-so commits *to these dotfiles* would be authored with it. The fix is a per-repo
-override — but that lives in `.git/config`, which is not tracked, so a fresh
-clone silently reverts to the work identity. Set it right after cloning:
+**This repo is itself an exception**, and in two ways — both of which live in
+the untracked `.git/config`, so a fresh clone silently reverts to the work
+identity. Run both right after cloning:
 
 ```sh
-git -C ~/code/dotfiles config user.email ajmoore.xyz@gmail.com
+cd ~/code/dotfiles
+
+# 1. Author commits as the personal address, not the machine default.
+git config user.email ajmoore.xyz@gmail.com
+
+# 2. Push as the personal GitHub account.
+git remote set-url origin git@github.com:ajmoorexyz/dotfiles.git
+git config core.sshCommand \
+  'ssh -o IdentityAgent="\"$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock\"" -o IdentitiesOnly=yes -i "$HOME/.config/git/ajmoorexyz.pub"'
 ```
+
+Both SSH keys live in 1Password and are served by its agent; the private key
+never touches disk. `~/.config/1Password/ssh/agent.toml` lists `disco` first,
+so the *default* github.com identity stays the work account — `ssh -T
+git@github.com` answers `Hi ajmoore-csdisco!`. This repo overrides that by
+pinning one key with `IdentitiesOnly` plus the matching **public** key at
+`~/.config/git/ajmoorexyz.pub` (write that file on a new machine; the value is
+in the 1Password item `personal`, field `public key`).
+
+Two things that will waste your time otherwise:
+
+- The agent socket path contains spaces, and `ssh -o IdentityAgent=...` will
+  not accept them unquoted — it fails with *"keyword identityagent extra
+  arguments at end of line"*. The value needs quotes **inside** the `-o`
+  argument, hence the escaped pair above.
+- HTTPS is not a workable alternative here. `gh auth git-credential` serves
+  whichever account is *active*, and ignores a username in the remote URL, so
+  an HTTPS push either 403s as the work account or falls through to a password
+  prompt. Pushing over HTTPS means `gh auth switch` every time.
+
+Verify with `ssh -o ... -T git@github.com`, which should answer `Hi ajmoorexyz!`.
 
 The general version of this problem — every personal repo, not just this one —
 wants `includeIf "gitdir:..."` in `git/.gitconfig`, which needs work and
