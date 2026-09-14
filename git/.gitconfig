@@ -7,9 +7,6 @@
 	status = always
 [pull]
 	rebase = true
-[user]
-	name = AJ Moore
-	email = ajmoore.xyz@gmail.com
 [core]
 	excludesfile = ~/.gitignore_global
 	editor = vim
@@ -32,3 +29,13 @@
 	autosetuprebase = always
 [init]
 	defaultBranch = main
+
+# Identity, credential helpers and safe.directory are per-machine, not
+# per-repo: this same file lands on a work laptop and a personal one. They
+# live in ~/.gitconfig.local, which is never tracked and never stowed.
+#
+# This include MUST stay last. Git applies values in file order and the last
+# one wins, so an include placed higher up would be silently overridden by
+# anything below it.
+[include]
+	path = ~/.gitconfig.local

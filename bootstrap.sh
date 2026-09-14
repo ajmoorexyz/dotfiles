@@ -5,6 +5,8 @@ set -euo pipefail
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGES=(zsh ghostty starship atuin git ripgrep)
 
+# Only used on x86_64, where neither tool has a Homebrew bottle. On arm64 the
+# version comes from brew and these are ignored.
 ATUIN_VERSION="v18.22.0"
 HERDR_VERSION="v0.9.0"
 
@@ -23,15 +25,32 @@ done
 info "Installing packages from Brewfile"
 brew bundle --file="$DOTFILES/Brewfile"
 
-# ----------------------------------------------- atuin + herdr (no bottles) ---
-# Both are Rust and ship no x86_64 bottle; brew would build rustc from source.
-# Use the vendors' official prebuilt binaries instead.
+# -------------------------------------------------------- atuin + herdr ---
+# Both are Rust. On arm64 Homebrew has bottles for each, so `brew install`
+# is a signed, checksum-verified download and takes seconds - always prefer
+# it there. Only x86_64 lacks bottles, and only there does brew fall back to
+# compiling rustc from source (over an hour); that is the case the curl path
+# below exists for.
+#
+# The distinction matters for herdr specifically: upstream publishes no
+# checksum for its release binaries, so the curl path installs an unverified
+# executable. Taking that risk on a machine where a verified bottle exists
+# would be gratuitous.
 mkdir -p "$HOME/.local/bin"
+
+# arm64 -> brew has bottles; x86_64 -> it does not.
+HAS_BOTTLES=false
+[[ "$(uname -m)" == "arm64" ]] && HAS_BOTTLES=true
 
 install_atuin() {
   command -v atuin >/dev/null && return 0
+  if [[ "$HAS_BOTTLES" == true ]]; then
+    info "Installing atuin from Homebrew (arm64 bottle)"
+    brew install atuin
+    return
+  fi
   local arch tmp
-  arch="$([[ "$(uname -m)" == "arm64" ]] && echo aarch64 || echo x86_64)"
+  arch="x86_64"
   tmp="$(mktemp -d)"
   info "Installing atuin $ATUIN_VERSION ($arch)"
   curl -fsSL -o "$tmp/a.tar.gz" \
@@ -50,11 +69,16 @@ install_atuin() {
 
 install_herdr() {
   command -v herdr >/dev/null && return 0
+  if [[ "$HAS_BOTTLES" == true ]]; then
+    info "Installing herdr from Homebrew (arm64 bottle)"
+    brew install herdr
+    return
+  fi
   local arch tmp
-  arch="$([[ "$(uname -m)" == "arm64" ]] && echo aarch64 || echo x86_64)"
+  arch="x86_64"
   tmp="$(mktemp -d)"
+  warn "herdr publishes no checksum for its release binaries - installing unverified"
   info "Installing herdr $HERDR_VERSION ($arch)"
-  # Upstream publishes no checksum file for these assets.
   curl -fsSL -o "$tmp/herdr" \
     "https://github.com/herdrdev/herdr/releases/download/$HERDR_VERSION/herdr-macos-$arch"
   install -m 755 "$tmp/herdr" "$HOME/.local/bin/herdr"
@@ -72,21 +96,39 @@ BACKUP="$HOME/.dotfiles-pre-stow-$(date +%Y%m%d%H%M%S)"
 for pkg in "${PACKAGES[@]}"; do
   while IFS= read -r rel; do
     target="$HOME/$rel"
-    if [[ -e "$target" && ! -L "$target" ]]; then
-      mkdir -p "$BACKUP/$(dirname "$rel")"
-      mv "$target" "$BACKUP/$rel"
-      warn "backed up existing $rel -> $BACKUP/$rel"
-    fi
+    [[ -e "$target" ]] || continue
+    [[ -L "$target" ]] && continue
+
+    # `-L` only tests the FINAL path component, which is not enough once stow
+    # has run. Stow folds a directory it owns entirely into a single symlink
+    # (~/.config/zsh -> <repo>/zsh/.config/zsh), so ~/.config/zsh/aliases.zsh
+    # is a real, non-symlink file reached *through* that link - and the naive
+    # check would happily `mv` this repo's own tracked files into the backup
+    # directory, deleting them from the working tree. Resolve the parent and
+    # skip anything that already lives inside $DOTFILES.
+    resolved="$(cd "$(dirname "$target")" 2>/dev/null && pwd -P)/$(basename "$target")"
+    [[ "$resolved" == "$DOTFILES"/* ]] && continue
+
+    mkdir -p "$BACKUP/$(dirname "$rel")"
+    mv "$target" "$BACKUP/$rel"
+    warn "backed up existing $rel -> $BACKUP/$rel"
   done < <(cd "$DOTFILES/$pkg" && find . -type f | sed 's|^\./||')
 done
 stow --dir="$DOTFILES" --target="$HOME" --restow "${PACKAGES[@]}"
 
 # ------------------------------------------------------------------ atuin ---
 if command -v atuin >/dev/null; then
-  if [[ -z "$(atuin history list 2>/dev/null | head -1)" ]]; then
+  # Test the database directly, not `atuin history list`. That command needs
+  # $ATUIN_SESSION, which only exists inside a shell where `atuin init` has
+  # run - never here - so it always errored to empty and the import always
+  # re-ran. Harmless, since atuin's import deduplicates, but it made an
+  # idempotent-looking guard that never actually guarded anything.
+  _atuin_db="${XDG_DATA_HOME:-$HOME/.local/share}/atuin/history.db"
+  if [[ ! -s "$_atuin_db" ]]; then
     info "Importing existing shell history into atuin"
     atuin import auto || warn "atuin import found nothing to import"
   fi
+  unset _atuin_db
 fi
 
 # ------------------------------------------------ default apps for cmd+click ---
@@ -109,14 +151,31 @@ VSCODE_UTIS=(
 )
 if command -v duti >/dev/null && [[ -d "/Applications/Visual Studio Code.app" ]]; then
   info "Pointing code file types at VS Code"
+  # A UTI no installed app declares cannot be bound, and duti fails on it.
+  # That is expected, not an error - but report the count rather than
+  # swallowing it, so a genuine breakage is not mistaken for a clean run.
+  # On a stock machine roughly 7 of these are undeclared (fish, lua,
+  # ia-markdown, typescript, toml, ini, sql). Most of their extensions still
+  # resolve to VS Code anyway, because nothing else claims them.
+  _duti_skipped=()
   for uti in "${VSCODE_UTIS[@]}"; do
-    duti -s com.microsoft.VSCode "$uti" all 2>/dev/null || true
+    duti -s com.microsoft.VSCode "$uti" all 2>/dev/null || _duti_skipped+=("$uti")
   done
+  if (( ${#_duti_skipped[@]} )); then
+    warn "${#_duti_skipped[@]}/${#VSCODE_UTIS[@]} UTIs undeclared on this machine, skipped:"
+    printf '      %s\n' "${_duti_skipped[@]}"
+  fi
+  unset _duti_skipped
 fi
 
 # ------------------------------------------------------------------ herdr ---
-# herdr runs its own server on demand - there is no brew service to start.
-# `herdr` alone launches or attaches the persistent session.
+# `herdr` alone launches or attaches the persistent session, starting the
+# server on demand - nothing needs starting here.
+#
+# The Homebrew formula does also ship a launchd service (`brew services start
+# herdr`, or `herdr server` in the foreground). That is only worth it if you
+# want the server resident before the first client connects; on-demand start
+# is the default and is what this setup relies on.
 if command -v herdr >/dev/null; then
   mkdir -p "$HOME/.cache/zsh/completions"
   herdr completion zsh > "$HOME/.cache/zsh/completions/_herdr" 2>/dev/null || true

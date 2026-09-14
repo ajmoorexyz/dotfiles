@@ -22,7 +22,7 @@ exec zsh
 | `starship/`| `~/.config/starship.toml`    | Prompt                              |
 | `atuin/`   | `~/.config/atuin/config.toml`| Shell history, owns <kbd>Ctrl</kbd>+<kbd>R</kbd> |
 | `ripgrep/` | `~/.config/ripgrep/ripgreprc`| Search defaults + clickable results |
-| `git/`     | `~/.gitconfig`, `~/.gitignore_global` | Git                        |
+| `git/`     | `~/.gitconfig`, `~/.gitignore_global` | Git (identity lives outside the repo — see below) |
 
 Stow one package: `stow --dir=~/code/dotfiles --target=~ --restow zsh`
 
@@ -63,23 +63,68 @@ all; they fall to whichever app declares the extension.
 
 Roll back the associations with `scripts/restore-file-associations.sh`.
 
+## Git identity
+
+The tracked `git/.gitconfig` carries no identity. The same file lands on a work
+laptop and a personal one, so anything machine-specific — `user.email`,
+credential helpers with absolute Homebrew paths, `safe.directory` — lives in
+`~/.gitconfig.local`, which is neither tracked nor stowed.
+
+```ini
+# ~/.gitconfig.local  (create by hand on each new machine)
+[user]
+	name = AJ Moore
+	email = you@example.com
+[credential "https://github.com"]
+	helper =
+	helper = !/opt/homebrew/bin/gh auth git-credential
+[safe]
+	directory = *
+```
+
+The `[include]` that pulls it in **must stay last** in `git/.gitconfig`. Git
+applies values in file order and the last one wins, so an include placed higher
+would be silently overridden by whatever follows it.
+
+Check it resolved the way you think with `git config --show-origin --get user.email`.
+
+**This repo is itself an exception.** The machine default is the work address,
+so commits *to these dotfiles* would be authored with it. The fix is a per-repo
+override — but that lives in `.git/config`, which is not tracked, so a fresh
+clone silently reverts to the work identity. Set it right after cloning:
+
+```sh
+git -C ~/code/dotfiles config user.email ajmoore.xyz@gmail.com
+```
+
+The general version of this problem — every personal repo, not just this one —
+wants `includeIf "gitdir:..."` in `git/.gitconfig`, which needs work and
+personal repos in separate directory trees. Not done: everything is under
+`~/code` today.
+
 ## Notes
 
 - **No plugin manager.** `zsh-autosuggestions` and `zsh-syntax-highlighting`
   come from Homebrew and are sourced directly. Syntax highlighting must be
   sourced *last* or it fails to wrap widgets defined after it.
-- **`atuin` and `herdr` are not in the Brewfile.** Neither ships an x86_64
-  bottle, so `brew install` compiles rustc from source (over an hour).
-  `bootstrap.sh` fetches the vendors' prebuilt release binaries into
-  `~/.local/bin` instead, verifying atuin's published SHA-256. Herdr publishes
-  no checksum. On Apple Silicon, `brew install atuin herdr` works normally.
+- **`atuin` and `herdr` are not in the Brewfile**, because how they get
+  installed depends on the architecture. `bootstrap.sh` branches on `uname -m`:
+  - **arm64** — both have Homebrew bottles, so it runs `brew install`. Fast and
+    checksum-verified. This is the path you want.
+  - **x86_64** — no bottles exist, and `brew install` would compile rustc from
+    source (over an hour). It falls back to the vendors' prebuilt release
+    binaries in `~/.local/bin`, verifying atuin's published SHA-256. **Herdr
+    publishes no checksum, so on Intel that binary is installed unverified** —
+    the script warns when it does this.
 - **nvm is not used to select a version.** `nvm use default` is broken with the
   Homebrew nvm here, so `zsh/.config/zsh/path.zsh` puts the node bin directory
   on `PATH` directly and loads nvm with `--no-use` for on-demand switching.
 - Homebrew's `node` is broken on this machine (links `libada.3.dylib`, but the
   installed `ada-url` ships `libada.4`). It is only a transitive dependency of
   `gemini-cli`. nvm's node shadows it, so nothing daily is affected.
-- Shell startup: ~0.33s, down from ~0.96s under rad-shell.
+- Shell startup: ~0.08s on arm64 (3-run median of
+  `script -q /dev/null zsh -i -c exit`), down from ~0.96s under rad-shell. The
+  earlier ~0.33s figure was measured on Intel.
 
 ## Rollback
 
