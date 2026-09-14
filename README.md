@@ -130,8 +130,41 @@ wants `includeIf "gitdir:..."` in `git/.gitconfig`, which needs work and
 personal repos in separate directory trees. Not done: everything is under
 `~/code` today.
 
+## What does not belong in this repo
+
+**This repo is public.** `~/.zshrc` sources `~/.zshrc.local` last, and that
+file is neither tracked nor stowed. Employer hostnames, internal paths,
+account names, API tokens and job-specific helper functions go there.
+
+On a new machine nothing in `~/.zshrc.local` exists, so anything depending on
+it fails quietly — an empty `$TG_TF_PATH`, a missing `$JIRA_API_TOKEN`, a
+`wb: command not found`. That is the intended trade: the repo stays generic
+and portable, and the machine-specific half is recreated deliberately.
+
+Tokens in there are plaintext on disk (`chmod 600`), which is what the
+pre-Starship `~/.zshrc` did too. Better would be to fetch them from 1Password
+at use time rather than export them into every shell:
+
+```sh
+export JIRA_API_TOKEN="$(op read 'op://Personal/jira-api/credential')"
+```
+
+That costs a biometric prompt per shell, so it is a deliberate trade-off, not
+an obvious win. Not done.
+
 ## Notes
 
+- **Ghostty uses `Dracula`, not `Dracula+`.** They are different palettes
+  despite the name — `Dracula+` is the VS Code variant and changes blue,
+  magenta, yellow, bright black and the background. Picking it made every
+  listing and prompt segment a different colour than iTerm on stock Dracula.
+- **`compinit` refuses to run if anything in `fpath` is group-writable**, and
+  `/opt/homebrew/share` ships that way (`drwxrwxr-x`). When it bails, `compdef`
+  is never defined and every prompt prints
+  `compdef: unknown command or service: kubectl`. Fix the cause:
+  `chmod g-w /opt/homebrew/share`, then `rm ~/.cache/zsh/zcompdump` — the dump
+  caches the broken state for 24h, so fixing perms alone looks like it did
+  nothing. Verify with `compaudit` (silence is success).
 - **No plugin manager.** `zsh-autosuggestions` and `zsh-syntax-highlighting`
   come from Homebrew and are sourced directly. Syntax highlighting must be
   sourced *last* or it fails to wrap widgets defined after it.

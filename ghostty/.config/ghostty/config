@@ -2,12 +2,18 @@
 # Managed in ~/code/dotfiles. Reload in place with cmd+shift+,
 
 # ------------------------------------------------------------- appearance ---
-theme = Dracula+
+# "Dracula", not "Dracula+". They are different palettes despite the name:
+# Dracula+ is the VS Code variant and changes blue (#bd93f9 -> #82aaff),
+# magenta (#ff79c6 -> #c792ea), yellow (#f1fa8c -> #ffcb6b), bright black
+# (#6272a4 -> #545454) and the background (#282a36 -> #212121). That made
+# every directory listing and prompt segment render a different colour here
+# than in iTerm, which uses stock Dracula.
+theme = Dracula
 
-# Lifted off Dracula's stock #282a36. Herdr paints its chrome (tab bar,
-# status line) with catppuccin's #181825; a lighter pane background pushes
-# the terminal away from that so herdr's panels read as a distinct plane.
-background = #303343
+# No `background` override. It used to be #303343 - lifted off Dracula's
+# stock #282a36 so herdr's catppuccin chrome (#181825) read as a distinct
+# plane. That cost an exact colour match with iTerm, which matters more.
+# Restore the override if herdr's panels stop reading as separate.
 
 font-family = MesloLGS Nerd Font Mono
 font-size = 14

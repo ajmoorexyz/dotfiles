@@ -29,9 +29,18 @@ alias grau="git remote add upstream"
 alias grv="git remote -v"
 alias gs="git status -sb"
 alias gl="git log --oneline --graph --decorate -20"
+### glo - one-line-per-commit log. Inlined from Prezto's version so it
+### survived Prezto's removal rather than silently disappearing with it.
+alias glo='git log --topo-order --pretty=format:"%C(green)%h%C(reset) %s%C(red)%d%C(reset)%n"'
 
 # --- kubernetes ---
 alias k=kubectl
+
+# --- aws ---
+### aws-clear - drop every AWS credential/region var from this shell.
+### Stale AWS_* env vars silently override AWS_PROFILE, which produces
+### confusing "wrong account" failures rather than an obvious error.
+alias aws-clear="unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_PROFILE AWS_REGION AWS_DEFAULT_REGION && echo 'AWS credentials unset.'"
 
 # --- modern CLI replacements ---
 # ls/ll/lt are functions, not aliases, so OSC 8 hyperlinks (which make files

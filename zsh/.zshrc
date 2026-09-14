@@ -79,7 +79,16 @@ zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path "$ZSH_CACHE/zcompcache"
 
 # `k` inherits kubectl's completions (compinit has run by now).
-command -v kubectl >/dev/null && compdef k=kubectl
+#
+# Guarded on _comps rather than on the kubectl binary. If compinit bails -
+# it refuses to run when anything in fpath is group-writable, which Homebrew's
+# /opt/homebrew/share is by default - then compdef does not exist and kubectl
+# is not registered, and the bare form printed
+#   compdef: unknown command or service: kubectl
+# on every single prompt. Fix the cause with `chmod g-w /opt/homebrew/share`
+# (then delete ~/.cache/zsh/zcompdump, which caches the broken state for a
+# day); this guard just keeps it silent if it ever happens again.
+(( $+_comps[kubectl] )) && compdef k=kubectl
 
 
 # ----------------------------------------------------------------- config ---
@@ -92,8 +101,17 @@ unset _f
 # Prompt
 command -v starship >/dev/null && eval "$(starship init zsh)"
 
-# Smarter cd. `cd` is replaced by zoxide's frecency-ranked version.
-command -v zoxide  >/dev/null && eval "$(zoxide init zsh --cmd cd)"
+# Smarter cd. `cd` is replaced by zoxide's frecency-ranked version - except
+# under Claude Code, which sources a cached shell snapshot that captures the
+# `cd` replacement but not zoxide's chpwd hook. The half-initialised state
+# trips zoxide's own doctor warning on every command. Use builtin cd there.
+if command -v zoxide >/dev/null; then
+  if [[ -n "$CLAUDECODE" ]]; then
+    eval "$(zoxide init zsh)"          # provides `z`, leaves `cd` alone
+  else
+    eval "$(zoxide init zsh --cmd cd)"
+  fi
+fi
 
 # Fuzzy finder: ctrl+t (files), alt+c (dirs). NOT ctrl+r - atuin owns that.
 if command -v fzf >/dev/null; then
@@ -119,5 +137,12 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 [[ -r "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] \
   && source "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 
-# Machine-local overrides, never committed.
+# iTerm2 shell integration (marks, cmd+shift+up/down navigation). Ghostty has
+# its own shell-integration, so only load this when actually inside iTerm.
+[[ "$TERM_PROGRAM" == "iTerm.app" && -r "$HOME/.iterm2_shell_integration.zsh" ]] \
+  && source "$HOME/.iterm2_shell_integration.zsh"
+
+# Machine-local overrides, never committed. Employer-specific paths, tokens,
+# hostnames and helper functions belong here, NOT in this repo - it is public.
+# Sourced last so it can override anything above.
 [[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
