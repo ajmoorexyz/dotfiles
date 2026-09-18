@@ -3,12 +3,13 @@
 set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGES=(zsh ghostty starship atuin git ripgrep)
+PACKAGES=(zsh ghostty starship atuin git ripgrep mise)
 
-# Only used on x86_64, where neither tool has a Homebrew bottle. On arm64 the
+# Only used on x86_64, where none of these has a Homebrew bottle. On arm64 the
 # version comes from brew and these are ignored.
 ATUIN_VERSION="v18.22.0"
 HERDR_VERSION="v0.9.0"
+MISE_VERSION="v2026.9.11"
 
 info() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[!]\033[0m %s\n' "$*"; }
@@ -25,8 +26,8 @@ done
 info "Installing packages from Brewfile"
 brew bundle --file="$DOTFILES/Brewfile"
 
-# -------------------------------------------------------- atuin + herdr ---
-# Both are Rust. On arm64 Homebrew has bottles for each, so `brew install`
+# ------------------------------------------------ atuin + herdr + mise ---
+# All three are Rust. On arm64 Homebrew has bottles for each, so `brew install`
 # is a signed, checksum-verified download and takes seconds - always prefer
 # it there. Only x86_64 lacks bottles, and only there does brew fall back to
 # compiling rustc from source (over an hour); that is the case the curl path
@@ -86,8 +87,34 @@ install_herdr() {
   rm -rf "$tmp"
 }
 
+install_mise() {
+  command -v mise >/dev/null && return 0
+  if [[ "$HAS_BOTTLES" == true ]]; then
+    info "Installing mise from Homebrew (arm64 bottle)"
+    brew install mise
+    return
+  fi
+  local arch tmp name
+  arch="x64"
+  name="mise-$MISE_VERSION-macos-$arch"
+  tmp="$(mktemp -d)"
+  info "Installing mise $MISE_VERSION ($arch)"
+  curl -fsSL -o "$tmp/$name" \
+    "https://github.com/jdx/mise/releases/download/$MISE_VERSION/$name"
+  curl -fsSL -o "$tmp/SHASUMS256.txt" \
+    "https://github.com/jdx/mise/releases/download/$MISE_VERSION/SHASUMS256.txt"
+  local expected actual
+  expected="$(awk -v f="./$name" -v g="$name" '$2 == f || $2 == g {print $1}' "$tmp/SHASUMS256.txt")"
+  actual="$(shasum -a 256 "$tmp/$name" | awk '{print $1}')"
+  [[ -n "$expected" && "$expected" == "$actual" ]] || { warn "mise checksum mismatch, skipping"; return 1; }
+  install -m 755 "$tmp/$name" "$HOME/.local/bin/mise"
+  xattr -d com.apple.quarantine "$HOME/.local/bin/mise" 2>/dev/null || true
+  rm -rf "$tmp"
+}
+
 install_atuin || warn "atuin install failed"
 install_herdr || warn "herdr install failed"
+install_mise  || warn "mise install failed"
 
 # ------------------------------------------------------------------- stow ---
 # Move any real file that would block a symlink out of the way first.
@@ -115,6 +142,20 @@ for pkg in "${PACKAGES[@]}"; do
   done < <(cd "$DOTFILES/$pkg" && find . -type f | sed 's|^\./||')
 done
 stow --dir="$DOTFILES" --target="$HOME" --restow "${PACKAGES[@]}"
+
+# ------------------------------------------------------------------- mise ---
+# Installs the ruby and node pinned in ~/.config/mise/config.toml, which stow
+# has just linked. Ruby compiles from source (~5 min on Intel); node is a
+# prebuilt download. Already-installed versions are skipped, so re-runs are
+# instant. ~/.local/bin is checked explicitly because on x86_64 that is where
+# install_mise put the binary, and it may not be on this script's PATH.
+_mise="$(command -v mise || true)"
+[[ -z "$_mise" && -x "$HOME/.local/bin/mise" ]] && _mise="$HOME/.local/bin/mise"
+if [[ -n "$_mise" ]]; then
+  info "Installing mise tool versions"
+  (cd "$HOME" && "$_mise" install) || warn "mise install failed"
+fi
+unset _mise
 
 # ------------------------------------------------------------------ atuin ---
 if command -v atuin >/dev/null; then

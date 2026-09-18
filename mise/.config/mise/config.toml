@@ -1,0 +1,11 @@
+# Global tool versions. Per-project mise.toml or .tool-versions override these.
+# After editing: `mise install`.
+
+[tools]
+ruby = "3.4.4"
+node = "20"              # latest 20.x, matching what nvm resolved to
+
+[settings]
+# Honour .nvmrc / .node-version in projects (e.g. ~/code/mosaic), which mise
+# ignores by default. Lets projects keep their nvm-era pins unchanged.
+idiomatic_version_file_enable_tools = ["node"]

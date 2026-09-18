@@ -1,8 +1,8 @@
 # Brewfile - `brew bundle` from the repo root.
-# NOTE: atuin and herdr are deliberately absent. Neither ships an Intel
-# (x86_64) bottle, so `brew install` compiles rustc from source, which takes
-# over an hour. bootstrap.sh fetches their official prebuilt release binaries
-# instead. On Apple Silicon you can install both from brew normally.
+# NOTE: atuin, herdr and mise are deliberately absent. None ships an Intel
+# (x86_64) bottle, so `brew install` compiles rustc/llvm from source, which
+# takes over an hour. bootstrap.sh fetches their official prebuilt release
+# binaries instead. On Apple Silicon it installs all three from brew.
 
 # --- shell ---
 brew "stow"                      # symlink manager for this repo

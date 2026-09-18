@@ -23,6 +23,7 @@ exec zsh
 | `atuin/`   | `~/.config/atuin/config.toml`| Shell history, owns <kbd>Ctrl</kbd>+<kbd>R</kbd> |
 | `ripgrep/` | `~/.config/ripgrep/ripgreprc`| Search defaults + clickable results |
 | `git/`     | `~/.gitconfig`, `~/.gitignore_global` | Git (identity lives outside the repo — see below) |
+| `mise/`    | `~/.config/mise/config.toml` | Global tool versions (ruby, node) |
 
 Stow one package: `stow --dir=~/code/dotfiles --target=~ --restow zsh`
 
@@ -202,21 +203,25 @@ an obvious win. Not done.
 - **No plugin manager.** `zsh-autosuggestions` and `zsh-syntax-highlighting`
   come from Homebrew and are sourced directly. Syntax highlighting must be
   sourced *last* or it fails to wrap widgets defined after it.
-- **`atuin` and `herdr` are not in the Brewfile**, because how they get
-  installed depends on the architecture. `bootstrap.sh` branches on `uname -m`:
-  - **arm64** — both have Homebrew bottles, so it runs `brew install`. Fast and
+- **`atuin`, `herdr` and `mise` are not in the Brewfile**, because how they
+  get installed depends on the architecture. `bootstrap.sh` branches on `uname -m`:
+  - **arm64** — all three have Homebrew bottles, so it runs `brew install`. Fast and
     checksum-verified. This is the path you want.
   - **x86_64** — no bottles exist, and `brew install` would compile rustc from
     source (over an hour). It falls back to the vendors' prebuilt release
-    binaries in `~/.local/bin`, verifying atuin's published SHA-256. **Herdr
+    binaries in `~/.local/bin`, verifying atuin's and mise's published SHA-256. **Herdr
     publishes no checksum, so on Intel that binary is installed unverified** —
     the script warns when it does this.
-- **nvm is not used to select a version.** `nvm use default` is broken with the
-  Homebrew nvm here, so `zsh/.config/zsh/path.zsh` puts the node bin directory
-  on `PATH` directly and loads nvm with `--no-use` for on-demand switching.
+- **mise manages ruby and node, via shims rather than `mise activate`.**
+  activate relies on a precmd hook that Claude Code's shell snapshot drops;
+  shims are a plain `PATH` entry and work everywhere. Global versions live in
+  `mise/.config/mise/config.toml`; project `mise.toml`, `.tool-versions` and
+  `.nvmrc` files still override them. After changing a version, run
+  `mise install`.
 - Homebrew's `node` is broken on this machine (links `libada.3.dylib`, but the
   installed `ada-url` ships `libada.4`). It is only a transitive dependency of
-  `gemini-cli`. nvm's node shadows it, so nothing daily is affected.
+  `gemini-cli`. mise's node shim comes first on `PATH` and shadows it, so
+  nothing daily is affected.
 - Shell startup: ~0.08s on arm64 (3-run median of
   `script -q /dev/null zsh -i -c exit`), down from ~0.96s under rad-shell. The
   earlier ~0.33s figure was measured on Intel.
