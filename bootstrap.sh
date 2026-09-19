@@ -144,11 +144,11 @@ done
 stow --dir="$DOTFILES" --target="$HOME" --restow "${PACKAGES[@]}"
 
 # ------------------------------------------------------------------- mise ---
-# Installs the ruby and node pinned in ~/.config/mise/config.toml, which stow
-# has just linked. Ruby compiles from source (~5 min on Intel); node is a
-# prebuilt download. Already-installed versions are skipped, so re-runs are
-# instant. ~/.local/bin is checked explicitly because on x86_64 that is where
-# install_mise put the binary, and it may not be on this script's PATH.
+# Installs the versions pinned in ~/.config/mise/config.toml, which stow has
+# just linked - node today, a prebuilt download of a few seconds. Anything
+# already installed is skipped, so re-runs are instant. ~/.local/bin is checked
+# explicitly because on x86_64 that is where install_mise put the binary, and
+# it may not be on this script's PATH.
 _mise="$(command -v mise || true)"
 [[ -z "$_mise" && -x "$HOME/.local/bin/mise" ]] && _mise="$HOME/.local/bin/mise"
 if [[ -n "$_mise" ]]; then

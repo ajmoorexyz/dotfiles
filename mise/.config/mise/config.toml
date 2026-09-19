@@ -2,8 +2,7 @@
 # After editing: `mise install`.
 
 [tools]
-ruby = "3.4.4"
-node = "20"              # latest 20.x, matching what nvm resolved to
+node = "lts"             # latest LTS; `mise upgrade node` moves to newer releases
 
 [settings]
 # Honour .nvmrc / .node-version in projects (e.g. ~/code/mosaic), which mise

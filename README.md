@@ -23,7 +23,7 @@ exec zsh
 | `atuin/`   | `~/.config/atuin/config.toml`| Shell history, owns <kbd>Ctrl</kbd>+<kbd>R</kbd> |
 | `ripgrep/` | `~/.config/ripgrep/ripgreprc`| Search defaults + clickable results |
 | `git/`     | `~/.gitconfig`, `~/.gitignore_global` | Git (identity lives outside the repo — see below) |
-| `mise/`    | `~/.config/mise/config.toml` | Global tool versions (ruby, node) |
+| `mise/`    | `~/.config/mise/config.toml` | Global tool versions (node)       |
 
 Stow one package: `stow --dir=~/code/dotfiles --target=~ --restow zsh`
 
@@ -212,7 +212,7 @@ an obvious win. Not done.
     binaries in `~/.local/bin`, verifying atuin's and mise's published SHA-256. **Herdr
     publishes no checksum, so on Intel that binary is installed unverified** —
     the script warns when it does this.
-- **mise manages ruby and node, via shims rather than `mise activate`.**
+- **mise manages node, via shims rather than `mise activate`.**
   activate relies on a precmd hook that Claude Code's shell snapshot drops;
   shims are a plain `PATH` entry and work everywhere. Global versions live in
   `mise/.config/mise/config.toml`; project `mise.toml`, `.tool-versions` and
